@@ -1,5 +1,4 @@
 using MediatR;
-using WooliesX.Products.Application.Features.Products.Commands.CreateProduct;
 using WooliesX.Products.Application.Features.Products.Commands.UpdateProduct;
 
 namespace WooliesX.Products.Api.Endpoints.Features.Products;
@@ -8,7 +7,7 @@ public static class UpdateProductEndpoint
 {
     public static IEndpointRouteBuilder MapUpdateProduct(this IEndpointRouteBuilder group)
     {
-        group.MapPut("/{id:int}", async (int id, ProductCreateRequest? request, IMediator mediator) =>
+        group.MapPut("/{id:int}", async (int id, UpdateRequest? request, IMediator mediator) =>
         {
             if (request is null)
             {

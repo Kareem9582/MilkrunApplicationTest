@@ -1,9 +1,16 @@
+using AutoMapper;
+
 namespace WooliesX.Products.Application.Features.Products.Queries.GetProducts;
 
 public class GetProductsHandler : IRequestHandler<GetProductsQuery, GetProductsResult>
 {
     private readonly IProductsRepository _repo;
-    public GetProductsHandler(IProductsRepository repo) => _repo = repo;
+    private readonly IMapper _mapper;
+    public GetProductsHandler(IProductsRepository repo, IMapper mapper)
+    {
+        _repo = repo;
+        _mapper = mapper;
+    }
 
     public Task<GetProductsResult> Handle(GetProductsQuery r, CancellationToken ct)
     {
@@ -63,8 +70,13 @@ public class GetProductsHandler : IRequestHandler<GetProductsQuery, GetProductsR
         var p = r.Page.GetValueOrDefault(1);
         var ps = r.PageSize.GetValueOrDefault(20);
         if (p < 1) p = 1; if (ps < 1) ps = 20; if (ps > 100) ps = 100;
-        var pageItems = items.Skip((p - 1) * ps).Take(ps).ToList();
+        var pageItems = items
+            .Skip((p - 1) * ps)
+            .Take(ps)
+            .ToList();
 
-        return Task.FromResult(new GetProductsResult(total, p, ps, pageItems));
+        var mapped = _mapper.Map<List<GetProductsResponse>>(pageItems);
+
+        return Task.FromResult(new GetProductsResult(total, p, ps, mapped));
     }
 }

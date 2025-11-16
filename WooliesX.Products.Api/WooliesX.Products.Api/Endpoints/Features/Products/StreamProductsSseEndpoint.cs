@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;               
 using System.Net.ServerSentEvents;                   
 using MediatR;
-using WooliesX.Products.Domain.Entities;
 using WooliesX.Products.Application.Features.Products.Queries.GetProducts;
 
 namespace WooliesX.Products.Api.Endpoints.Features.Products;
@@ -27,7 +26,7 @@ public static class StreamProductsSseEndpoint
             string? order) =>
         {
             // Local async iterator that generates SSE items
-            async IAsyncEnumerable<SseItem<Product>> Stream(
+            async IAsyncEnumerable<SseItem<GetProductsResponse>> Stream(
                 [EnumeratorCancellation] CancellationToken ct)
             {
                 while (!ct.IsCancellationRequested)
@@ -42,7 +41,7 @@ public static class StreamProductsSseEndpoint
 
                     foreach (var product in result.Items)
                     {
-                        yield return new SseItem<Product>(product, eventType: "product")
+                        yield return new SseItem<GetProductsResponse>(product, eventType: "product")
                         {
                             // Client reconnection hint
                             ReconnectionInterval = TimeSpan.FromSeconds(5)

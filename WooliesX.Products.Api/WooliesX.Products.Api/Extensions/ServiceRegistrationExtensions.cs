@@ -8,6 +8,8 @@ using WooliesX.Products.Infrastructure.Persistance;
 using WooliesX.Products.Application.Features.Products.Queries.GetProducts;
 using WooliesX.Products.Application.Features.Products.Commands.CreateProduct;
 using FluentValidation;
+using AutoMapper;
+using WooliesX.Products.Application.Features.Products.Mapping;
 
 namespace WooliesX.Products.Api.Extensions;
 
@@ -60,6 +62,7 @@ public static class ServiceRegistrationExtensions
         builder.Services.AddAuthorization();
         builder.Services.AddSingleton<IProductsRepository, JsonSeededInMemoryProductsRepository>();
         builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(GetProductsQuery).Assembly));
+        builder.Services.AddAutoMapper(typeof(ProductMappingProfile).Assembly);
         builder.Services.AddValidatorsFromAssemblyContaining<CreateProductCommandValidator>();
 
         return builder;

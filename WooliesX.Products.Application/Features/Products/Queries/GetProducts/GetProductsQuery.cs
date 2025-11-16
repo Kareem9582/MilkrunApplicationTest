@@ -14,4 +14,4 @@ public record GetProductsQuery(
     string? SortBy,
     string? Order) : IRequest<GetProductsResult>;
 
-public record GetProductsResult(int Total, int Page, int PageSize, List<Product> Items);
+public record GetProductsResult(int Total, int Page, int PageSize, List<GetProductsResponse> Items);
