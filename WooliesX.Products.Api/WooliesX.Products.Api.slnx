@@ -1,7 +1,7 @@
 <Solution>
   <Folder Name="/Files/">
-    <File Path="../../../MilkRun/Files/ProductsDemoApplication.postman_collection.json" />
-    <File Path="../../../MilkRun/Files/setup-user-secrets.ps1" />
+    <File Path="../Files/ProductsDemoApplication.postman_collection.json" />
+    <File Path="../Files/setup-user-secrets.ps1" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="../WooliesX.Products.Api.Tests/WooliesX.Products.Api.Tests.csproj" />
