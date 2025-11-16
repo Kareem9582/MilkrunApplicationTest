@@ -1,13 +1,36 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>71b79d44-1875-4000-99da-4a08a8ba8c4a</UserSecretsId>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+		<PackageReference Include="MediatR" Version="12.2.0" />
+		<PackageReference Include="Serilog.AspNetCore" Version="8.0.2" />
+		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+		<PackageReference Include="Serilog.Settings.Configuration" Version="8.0.2" />
+		<PackageReference Include="FluentValidation" Version="11.9.2" />
+		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.9.2" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.7" />
+	</ItemGroup>
+	<ItemGroup>
+		<Compile Remove="tests\**\*.cs" />
+		<EmbeddedResource Remove="tests\**\*.*" />
+		<None Remove="tests\**\*.*" />
+		<Content Remove="tests\**\*.*" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\..\WooliesX.Products.Application\WooliesX.Products.Application.csproj" />
+	  <ProjectReference Include="..\..\WooliesX.Products.Domain\WooliesX.Products.Domain.csproj" />
+	  <ProjectReference Include="..\..\WooliesX.Products.Infrastructure\WooliesX.Products.Infrastructure.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+    <Content Update="Products.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
-
 </Project>

@@ -1,4 +1,3 @@
-namespace WooliesX.Products.Application.Auth.Login;
+namespace WooliesX.Products.Application.Features.Auth.Login;
 
 public record LoginRequest(string Username, string Password);
-

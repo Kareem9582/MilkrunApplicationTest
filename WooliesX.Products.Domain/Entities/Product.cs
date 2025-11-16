@@ -16,4 +16,3 @@ public class Product
     [JsonPropertyName("thumbnail")] public string? Thumbnail { get; set; }
     [JsonPropertyName("images")] public List<string>? Images { get; set; }
 }
-

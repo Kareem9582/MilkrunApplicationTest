@@ -4,4 +4,3 @@ public class DataOptions
 {
     public string? ProductsPath { get; set; }
 }
-

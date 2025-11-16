@@ -68,4 +68,3 @@ public class GetProductsHandler : IRequestHandler<GetProductsQuery, GetProductsR
         return Task.FromResult(new GetProductsResult(total, p, ps, pageItems));
     }
 }
-

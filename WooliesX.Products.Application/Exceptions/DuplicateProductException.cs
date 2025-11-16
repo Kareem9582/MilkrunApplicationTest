@@ -12,4 +12,3 @@ public class DuplicateProductException : Exception
         BrandValue = brand ?? string.Empty;
     }
 }
-

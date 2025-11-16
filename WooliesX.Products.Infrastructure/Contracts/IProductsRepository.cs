@@ -11,4 +11,3 @@ public interface IProductsRepository
     bool ExistsDuplicate(string title, string? brand, int? excludeId);
     bool Delete(int id);
 }
-

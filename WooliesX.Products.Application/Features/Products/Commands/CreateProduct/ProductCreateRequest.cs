@@ -8,4 +8,3 @@ public class ProductCreateRequest
     public string? Brand { get; set; }
     public string? Category { get; set; }
 }
-

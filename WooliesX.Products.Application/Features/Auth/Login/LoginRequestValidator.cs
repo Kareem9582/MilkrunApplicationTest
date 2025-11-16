@@ -1,4 +1,4 @@
-namespace WooliesX.Products.Application.Auth.Login;
+namespace WooliesX.Products.Application.Features.Auth.Login;
 
 public class LoginRequestValidator : AbstractValidator<LoginRequest>
 {
