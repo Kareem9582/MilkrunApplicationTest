@@ -1,18 +1,20 @@
-
+using AutoMapper;
 
 namespace WooliesX.Products.Application.Features.Products.Commands.CreateProduct;
 
-public class CreateProductHandler : IRequestHandler<CreateProductCommand, Product>
+public class CreateProductHandler : IRequestHandler<CreateProductCommand, AddProductResponse>
 {
     private readonly IProductsRepository _repo;
     private readonly IValidator<CreateProductCommand> _validator;
-    public CreateProductHandler(IProductsRepository repo, IValidator<CreateProductCommand> validator)
+    private readonly IMapper _mapper;
+    public CreateProductHandler(IProductsRepository repo, IValidator<CreateProductCommand> validator, IMapper mapper)
     {
         _repo = repo;
         _validator = validator;
+        _mapper = mapper;
     }
 
-    public Task<Product> Handle(CreateProductCommand r, CancellationToken cancellationToken = default)
+    public Task<AddProductResponse> Handle(CreateProductCommand r, CancellationToken cancellationToken = default)
     {
         var result = _validator.Validate(r);
         if (!result.IsValid)
@@ -35,6 +37,7 @@ public class CreateProductHandler : IRequestHandler<CreateProductCommand, Produc
             Category = r.Category?.Trim()
         };
         _repo.Add(product);
-        return Task.FromResult(product);
+        var response = _mapper.Map<AddProductResponse>(product);
+        return Task.FromResult(response);
     }
 }

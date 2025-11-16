@@ -8,7 +8,6 @@ using WooliesX.Products.Infrastructure.Persistance;
 using WooliesX.Products.Application.Features.Products.Queries.GetProducts;
 using WooliesX.Products.Application.Features.Products.Commands.CreateProduct;
 using FluentValidation;
-using AutoMapper;
 using WooliesX.Products.Application.Features.Products.Mapping;
 
 namespace WooliesX.Products.Api.Extensions;
