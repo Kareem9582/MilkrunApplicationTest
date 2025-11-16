@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Files/">
+    <File Path="../../../MilkRun/Files/ProductsDemoApplication.postman_collection.json" />
+    <File Path="../../../MilkRun/Files/setup-user-secrets.ps1" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="../WooliesX.Products.Api.Tests/WooliesX.Products.Api.Tests.csproj" />
+  </Folder>
+  <Project Path="../WooliesX.Products.Application/WooliesX.Products.Application.csproj" />
+  <Project Path="../WooliesX.Products.Domain/WooliesX.Products.Domain.csproj" />
+  <Project Path="../WooliesX.Products.Infrastructure/WooliesX.Products.Infrastructure.csproj" />
+  <Project Path="WooliesX.Products.Api/WooliesX.Products.Api.csproj" />
+</Solution>

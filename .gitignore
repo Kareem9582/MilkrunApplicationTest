@@ -1,0 +1,47 @@
+# Visual Studio / .NET build outputs
+**/bin/
+**/obj/
+.vs/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# IDE settings
+.idea/
+.vscode/
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+
+# Logs
+Logs/
+**/Logs/
+*.log
+
+# Test artifacts
+TestResult*/
+**/TestResults/
+*.trx
+
+# Temporary files
+*.tmp
+*.temp
+
+# .NET artifacts
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+# OS files
+.DS_Store
+Thumbs.db
+

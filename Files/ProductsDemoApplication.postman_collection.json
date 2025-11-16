@@ -1,0 +1,151 @@
+{
+  "info": {
+    "name": "ProductsDemoApplication API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Auth and Products endpoints for local development. Uses JWT for protected routes."
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-fetch JWT before protected requests (skip for login)",
+          "const path = pm.request.url.getPath();",
+          "if (path && path.endsWith('/auth/login')) { return; }",
+          "const user = pm.collectionVariables.get('BASIC_AUTH_USERNAME') || pm.environment.get('BASIC_AUTH_USERNAME') || 'test_user';",
+          "const pass = pm.collectionVariables.get('BASIC_AUTH_PASSWORD') || pm.environment.get('BASIC_AUTH_PASSWORD') || 'test_password';",
+          "const base = pm.collectionVariables.get('baseUrl') || pm.environment.get('baseUrl') || '';",
+          "if (!pm.collectionVariables.get('jwt')) {",
+          "  pm.sendRequest({",
+          "    url: base + '/auth/login',",
+          "    method: 'POST',",
+          "    header: { 'Content-Type': 'application/json' },",
+          "    body: { mode: 'raw', raw: JSON.stringify({ username: user, password: pass }) }",
+          "  }, function (err, res) {",
+          "    if (!err && res && res.code === 200) {",
+          "      try { var data = res.json(); pm.collectionVariables.set('jwt', data.accessToken); } catch(e) {}",
+          "    }",
+          "  });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://localhost:7108" },
+    { "key": "BASIC_AUTH_USERNAME", "value": "test_user" },
+    { "key": "BASIC_AUTH_PASSWORD", "value": "test_password" },
+    { "key": "jwt", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "GET /auth (check auth)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt}}", "type": "text" },
+              { "key": "X-Correlation-Id", "value": "{{$randomUUID}}", "disabled": true }
+            ],
+            "url": { "raw": "{{baseUrl}}/auth", "host": ["{{baseUrl}}"], "path": ["auth"] }
+          }
+        },
+        {
+          "name": "POST /auth/login (issue JWT)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{BASIC_AUTH_USERNAME}}\",\n  \"password\": \"{{BASIC_AUTH_PASSWORD}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "GET /products (list)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Correlation-Id", "value": "{{$randomUUID}}", "disabled": true }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "q", "value": "", "disabled": true },
+                { "key": "title", "value": "", "disabled": true },
+                { "key": "brand", "value": "", "disabled": true },
+                { "key": "category", "value": "", "disabled": true },
+                { "key": "minPrice", "value": "", "disabled": true },
+                { "key": "maxPrice", "value": "", "disabled": true },
+                { "key": "minRating", "value": "", "disabled": true },
+                { "key": "inStock", "value": "", "disabled": true },
+                { "key": "page", "value": "1", "disabled": true },
+                { "key": "pageSize", "value": "20", "disabled": true },
+                { "key": "sortBy", "value": "id", "disabled": true },
+                { "key": "order", "value": "asc", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /products/{id}",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/products/:id", "host": ["{{baseUrl}}"], "path": ["products", ":id"], "variable": [ { "key": "id", "value": "1" } ] }
+          }
+        },
+        {
+          "name": "POST /products (create)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$randomUUID}}", "disabled": true }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sample Product\",\n  \"description\": \"Optional description\",\n  \"price\": 99.99,\n  \"brand\": \"BrandX\",\n  \"category\": \"laptops\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/products", "host": ["{{baseUrl}}"], "path": ["products"] }
+          }
+        },
+        {
+          "name": "PUT /products/{id} (update)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$randomUUID}}", "disabled": true }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Title\",\n  \"description\": \"Updated description\",\n  \"price\": 149.99,\n  \"brand\": \"BrandX\",\n  \"category\": \"laptops\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/products/:id", "host": ["{{baseUrl}}"], "path": ["products", ":id"], "variable": [ { "key": "id", "value": "1" } ] }
+          }
+        },
+        {
+          "name": "GET /products/stream (SSE)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/products/stream", "host": ["{{baseUrl}}"], "path": ["products", "stream"] },
+            "description": "Server-Sent Events stream of products. Best viewed in a browser or SSE client."
+          }
+        }
+      ]
+    }
+  ]
+}
