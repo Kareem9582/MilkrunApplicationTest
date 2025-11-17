@@ -3,7 +3,7 @@ using WooliesX.Products.Application.Features.Products.Queries.GetProducts;
 
 namespace WooliesX.Products.Api.Endpoints.Features.Products;
 
-public static class ListProductsEndpoint
+public static class GetProductsEndpoint
 {
     public static IEndpointRouteBuilder MapListProducts(this IEndpointRouteBuilder group)
     {
