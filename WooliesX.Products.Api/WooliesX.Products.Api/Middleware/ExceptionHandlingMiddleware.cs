@@ -53,6 +53,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
         {
             ValidationException vex => (HttpStatusCode.BadRequest, "Validation Failed", vex.Message, new Dictionary<string, string[]>(vex.Errors)),
             MissingBodyException mbe => (HttpStatusCode.BadRequest, "Bad Request", mbe.Message, null),
+            ArgumentException arge => (HttpStatusCode.BadRequest, "Bad Request", arge.Message, null),
             DuplicateProductException dpex => (HttpStatusCode.Conflict, "Duplicate Product", dpex.Message, null),
             KeyNotFoundException knf => (HttpStatusCode.NotFound, "Not Found", knf.Message, null),
             _ => (HttpStatusCode.InternalServerError, "Server Error", "An unexpected error occurred.", null)

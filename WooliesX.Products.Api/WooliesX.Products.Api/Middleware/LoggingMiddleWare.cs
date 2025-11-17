@@ -11,8 +11,41 @@ public class LoggingMiddleWare(RequestDelegate next, ILogger<LoggingMiddleWare> 
 
     public async Task InvokeAsync(HttpContext context)
     {
-        context.Request.EnableBuffering();
+        // Detect Server-Sent Events by Accept header or path pattern
+        var isSseRequest = IsSseRequest(context.Request);
 
+        if (isSseRequest)
+        {
+            // Log SSE request start without buffering
+            var correlationId = context.Request.Headers["X-Correlation-Id"].FirstOrDefault()
+                                ?? context.TraceIdentifier;
+
+            _logger.LogInformation(
+                "SSE Stream Started: {Method} {PathQuery} | CorrelationId={CorrelationId}",
+                context.Request.Method,
+                context.Request.Path + context.Request.QueryString,
+                correlationId);
+
+            var requestSW = Stopwatch.StartNew();
+            try
+            {
+                await _next(context);
+            }
+            finally
+            {
+                requestSW.Stop();
+                _logger.LogInformation(
+                    "SSE Stream Completed: {Method} {PathQuery} in {ElapsedMs} ms | CorrelationId={CorrelationId}",
+                    context.Request.Method,
+                    context.Request.Path + context.Request.QueryString,
+                    requestSW.ElapsedMilliseconds,
+                    correlationId);
+            }
+            return;
+        }
+
+        // Normal request/response logging with buffering
+        context.Request.EnableBuffering();
         var requestBody = await ReadRequestBodyAsync(context.Request);
 
         var originalBody = context.Response.Body;
@@ -28,24 +61,71 @@ public class LoggingMiddleWare(RequestDelegate next, ILogger<LoggingMiddleWare> 
         {
             sw.Stop();
 
-            responseBuffer.Seek(0, SeekOrigin.Begin);
-            var responseBody = await ReadBodyFromStreamAsync(responseBuffer, context.Response.ContentType);
-            responseBuffer.Seek(0, SeekOrigin.Begin);
-            await responseBuffer.CopyToAsync(originalBody);
-            context.Response.Body = originalBody;
+            // Check if response became SSE after processing
+            var isSseResponse = context.Response.ContentType?.Contains("text/event-stream",
+                StringComparison.OrdinalIgnoreCase) ?? false;
 
-            var correlationId = context.Request.Headers["X-Correlation-Id"].FirstOrDefault() ?? context.TraceIdentifier;
+            if (isSseResponse)
+            {
+                // If somehow we missed SSE detection, don't buffer
+                responseBuffer.Seek(0, SeekOrigin.Begin);
+                await responseBuffer.CopyToAsync(originalBody);
+                context.Response.Body = originalBody;
 
-            _logger.LogInformation(
-                "Handled {Method} {PathQuery} -> {StatusCode} in {ElapsedMs} ms | CorrelationId={CorrelationId}\nRequestBody: {RequestBody}\nResponseBody: {ResponseBody}",
-                context.Request.Method,
-                context.Request.Path + context.Request.QueryString,
-                context.Response.StatusCode,
-                sw.ElapsedMilliseconds,
-                correlationId,
-                requestBody,
-                responseBody);
+                var correlationId = context.Request.Headers["X-Correlation-Id"].FirstOrDefault()
+                                    ?? context.TraceIdentifier;
+                _logger.LogInformation(
+                    "SSE Response Detected: {Method} {PathQuery} -> {StatusCode} in {ElapsedMs} ms | CorrelationId={CorrelationId}",
+                    context.Request.Method,
+                    context.Request.Path + context.Request.QueryString,
+                    context.Response.StatusCode,
+                    sw.ElapsedMilliseconds,
+                    correlationId);
+            }
+            else
+            {
+                // Normal response logging
+                responseBuffer.Seek(0, SeekOrigin.Begin);
+                var responseBody = await ReadBodyFromStreamAsync(responseBuffer, context.Response.ContentType);
+                responseBuffer.Seek(0, SeekOrigin.Begin);
+                await responseBuffer.CopyToAsync(originalBody);
+                context.Response.Body = originalBody;
+
+                var correlationId = context.Request.Headers["X-Correlation-Id"].FirstOrDefault()
+                                    ?? context.TraceIdentifier;
+
+                _logger.LogInformation(
+                    "Handled {Method} {PathQuery} -> {StatusCode} in {ElapsedMs} ms | CorrelationId={CorrelationId}\nRequestBody: {RequestBody}\nResponseBody: {ResponseBody}",
+                    context.Request.Method,
+                    context.Request.Path + context.Request.QueryString,
+                    context.Response.StatusCode,
+                    sw.ElapsedMilliseconds,
+                    correlationId,
+                    requestBody,
+                    responseBody);
+            }
         }
+    }
+
+    private static bool IsSseRequest(HttpRequest request)
+    {
+        // Check Accept header
+        if (request.Headers.TryGetValue("Accept", out var accept)
+            && accept.Any(a => a?.Contains("text/event-stream", StringComparison.OrdinalIgnoreCase) ?? false))
+        {
+            return true;
+        }
+
+        // Check for common SSE endpoint patterns
+        var path = request.Path.Value ?? string.Empty;
+        if (path.Contains("/stream", StringComparison.OrdinalIgnoreCase)
+            || path.EndsWith("/sse", StringComparison.OrdinalIgnoreCase)
+            || path.Contains("/events", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static async Task<string> ReadRequestBodyAsync(HttpRequest request)
@@ -58,7 +138,8 @@ public class LoggingMiddleWare(RequestDelegate next, ILogger<LoggingMiddleWare> 
         var length = request.ContentLength ?? 0;
 
         string text;
-        using (var reader = new StreamReader(request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true))
+        using (var reader = new StreamReader(request.Body, Encoding.UTF8,
+            detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true))
         {
             text = await reader.ReadToEndAsync();
         }
@@ -69,7 +150,8 @@ public class LoggingMiddleWare(RequestDelegate next, ILogger<LoggingMiddleWare> 
 
     private static async Task<string> ReadBodyFromStreamAsync(Stream stream, string? contentType)
     {
-        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true);
+        using var reader = new StreamReader(stream, Encoding.UTF8,
+            detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true);
         var text = await reader.ReadToEndAsync();
         var memoryLength = stream is MemoryStream ms ? ms.Length : text.Length;
         return SanitizeBody(text, contentType ?? string.Empty, memoryLength);
@@ -81,7 +163,7 @@ public class LoggingMiddleWare(RequestDelegate next, ILogger<LoggingMiddleWare> 
         var isText = ct.Contains("application/json", StringComparison.OrdinalIgnoreCase)
                      || ct.StartsWith("text/", StringComparison.OrdinalIgnoreCase)
                      || ct.Contains("application/xml", StringComparison.OrdinalIgnoreCase)
-                     || string.IsNullOrWhiteSpace(ct); // assume text if unknown
+                     || string.IsNullOrWhiteSpace(ct);
 
         if (!isText)
         {
@@ -91,7 +173,9 @@ public class LoggingMiddleWare(RequestDelegate next, ILogger<LoggingMiddleWare> 
         if (length.HasValue && length.Value > MaxBodyBytes)
         {
             var truncated = Encoding.UTF8.GetBytes(text);
-            var slice = truncated.Length > MaxBodyBytes ? Encoding.UTF8.GetString(truncated, 0, MaxBodyBytes) : text;
+            var slice = truncated.Length > MaxBodyBytes
+                ? Encoding.UTF8.GetString(truncated, 0, MaxBodyBytes)
+                : text;
             return slice + $"… [truncated to {MaxBodyBytes} bytes]";
         }
 

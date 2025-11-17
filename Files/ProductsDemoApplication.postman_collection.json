@@ -63,7 +63,19 @@
               "raw": "{\n  \"username\": \"{{BASIC_AUTH_USERNAME}}\",\n  \"password\": \"{{BASIC_AUTH_PASSWORD}}\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var response = pm.response.json();",
+                  "pm.environment.set(\"Token\", response.token)"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
