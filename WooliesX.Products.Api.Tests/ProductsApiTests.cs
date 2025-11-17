@@ -12,6 +12,13 @@ public class ProductsApiTests
 
     private static HttpClient CreateClient() => new CustomWebApplicationFactory().CreateClient();
 
+    private static async Task<HttpClient> CreateAuthenticatedClientAsync()
+    {
+        var client = CreateClient();
+        await AddBearerAuth(client);
+        return client;
+    }
+
     [Fact]
     public async Task GetProducts_ReturnsOkAndData()
     {
@@ -47,8 +54,8 @@ public class ProductsApiTests
         var r2 = await client.GetAsync("/products?page=2&pageSize=2");
         r1.StatusCode.Should().Be(HttpStatusCode.OK);
         r2.StatusCode.Should().Be(HttpStatusCode.OK);
-        var j1 = JsonDocument.Parse(await r1.Content.ReadAsStringAsync());
-        var j2 = JsonDocument.Parse(await r2.Content.ReadAsStringAsync());
+        using var j1 = await ReadJsonAsync(r1);
+        using var j2 = await ReadJsonAsync(r2);
         j1.RootElement.GetProperty("items").GetArrayLength().Should().Be(2);
         j2.RootElement.GetProperty("items").GetArrayLength().Should().Be(2);
         var firstId = j1.RootElement.GetProperty("items")[0].GetProperty("id").GetInt32();
@@ -139,18 +146,15 @@ public class ProductsApiTests
     [Fact]
     public async Task Post_InvalidRequest_Returns400()
     {
-        var client = CreateClient();
-        await AddBearerAuth(client);
-        var payload = Json("{\"title\":\"\",\"price\":0}");
-        var resp = await client.PostAsync("/products", payload);
+        var client = await CreateAuthenticatedClientAsync();
+        var resp = await PostJsonAsync(client, "/products", new { title = "", price = 0m });
         resp.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
     public async Task Post_WithoutBody_Returns400()
     {
-        var client = CreateClient();
-        await AddBearerAuth(client);
+        var client = await CreateAuthenticatedClientAsync();
         var resp = await client.PostAsync("/products", content: null);
         resp.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -158,22 +162,16 @@ public class ProductsApiTests
     [Fact]
     public async Task Post_ValidRequest_Returns201()
     {
-        var client = CreateClient();
-        await AddBearerAuth(client);
-        var body = new { title = "Surface Pro 10 Test", description = "Latest model", price = 1599.00m, brand = "Microsoft", category = "laptops" };
-        var payload = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-        var resp = await client.PostAsync("/products", payload);
+        var client = await CreateAuthenticatedClientAsync();
+        var resp = await PostJsonAsync(client, "/products", new { title = "Surface Pro 10 Test", description = "Latest model", price = 1599.00m, brand = "Microsoft", category = "laptops" });
         resp.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
     [Fact]
     public async Task Post_DuplicateTitleBrand_Returns409()
     {
-        var client = CreateClient();
-        await AddBearerAuth(client);
-        var body = new { title = "iPhone 9", description = "dup", price = 1m, brand = "Apple" };
-        var payload = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-        var resp = await client.PostAsync("/products", payload);
+        var client = await CreateAuthenticatedClientAsync();
+        var resp = await PostJsonAsync(client, "/products", new { title = "iPhone 9", description = "dup", price = 1m, brand = "Apple" });
         resp.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
@@ -181,28 +179,22 @@ public class ProductsApiTests
     public async Task Put_WithoutAuth_Returns401()
     {
         var client = CreateClient();
-        var body = new { title = "iPhone 9", description = "Update", price = 550m, brand = "Apple" };
-        var payload = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-        var resp = await client.PutAsync("/products/1", payload);
+        var resp = await PutJsonAsync(client, "/products/1", new { title = "iPhone 9", description = "Update", price = 550m, brand = "Apple" });
         resp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
     public async Task Put_InvalidRequest_Returns400()
     {
-        var client = CreateClient();
-        await AddBearerAuth(client);
-        var body = new { title = "", description = new string('x', 101), price = 0m, brand = "Apple" };
-        var payload = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-        var resp = await client.PutAsync("/products/1", payload);
+        var client = await CreateAuthenticatedClientAsync();
+        var resp = await PutJsonAsync(client, "/products/1", new { title = "", description = new string('x', 101), price = 0m, brand = "Apple" });
         resp.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
     public async Task Put_WithoutBody_Returns400()
     {
-        var client = CreateClient();
-        await AddBearerAuth(client);
+        var client = await CreateAuthenticatedClientAsync();
         var resp = await client.PutAsync("/products/1", content: null);
         resp.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -210,34 +202,25 @@ public class ProductsApiTests
     [Fact]
     public async Task Put_NotFound_Returns404()
     {
-        var client = CreateClient();
-        await AddBearerAuth(client);
-        var body = new { title = "DoesNotExist", description = "Update", price = 10m, brand = "NoBrand" };
-        var payload = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-        var resp = await client.PutAsync("/products/999999", payload);
+        var client = await CreateAuthenticatedClientAsync();
+        var resp = await PutJsonAsync(client, "/products/999999", new { title = "DoesNotExist", description = "Update", price = 10m, brand = "NoBrand" });
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
     public async Task Put_Duplicate_Returns409()
     {
-        var client = CreateClient();
-        await AddBearerAuth(client);
+        var client = await CreateAuthenticatedClientAsync();
         // Update product 1 (iPhone 9, Apple) to duplicate product 2 (iPhone X, Apple)
-        var body = new { title = "iPhone X", description = "dup", price = 549m, brand = "Apple" };
-        var payload = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-        var resp = await client.PutAsync("/products/1", payload);
+        var resp = await PutJsonAsync(client, "/products/1", new { title = "iPhone X", description = "dup", price = 549m, brand = "Apple" });
         resp.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
     [Fact]
     public async Task Put_Valid_Returns200_AndUpdates()
     {
-        var client = CreateClient();
-        await AddBearerAuth(client);
-        var body = new { title = "iPhone 9", description = "Updated desc", price = 550m, brand = "Apple" };
-        var payload = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-        var resp = await client.PutAsync("/products/1", payload);
+        var client = await CreateAuthenticatedClientAsync();
+        var resp = await PutJsonAsync(client, "/products/1", new { title = "iPhone 9", description = "Updated desc", price = 550m, brand = "Apple" });
         resp.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var check = await client.GetAsync("/products/1");
@@ -251,9 +234,7 @@ public class ProductsApiTests
     {
         var client = CreateClient();
         var (user, pass) = GetBasicAuthCredentials();
-        var body = new { username = user, password = pass };
-        var payload = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-        var resp = await client.PostAsync("/auth/login", payload);
+        var resp = await PostJsonAsync(client, "/auth/login", new { username = user, password = pass });
         resp.StatusCode.Should().Be(HttpStatusCode.OK);
         var json = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
         json.RootElement.GetProperty("tokenType").GetString().Should().Be("Bearer");
@@ -265,9 +246,7 @@ public class ProductsApiTests
     public async Task Login_WithInvalidCredentials_Returns401()
     {
         var client = CreateClient();
-        var body = new { username = "wrong", password = "creds" };
-        var payload = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-        var resp = await client.PostAsync("/auth/login", payload);
+        var resp = await PostJsonAsync(client, "/auth/login", new { username = "wrong", password = "creds" });
         resp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -284,8 +263,7 @@ public class ProductsApiTests
     private static async Task AddBearerAuth(HttpClient client)
     {
         var (user, pass) = GetBasicAuthCredentials();
-        var payload = new StringContent(JsonSerializer.Serialize(new { username = user, password = pass }), Encoding.UTF8, "application/json");
-        var resp = await client.PostAsync("/auth/login", payload);
+        var resp = await PostJsonAsync(client, "/auth/login", new { username = user, password = pass });
         resp.EnsureSuccessStatusCode();
         var token = JsonDocument.Parse(await resp.Content.ReadAsStringAsync()).RootElement.GetProperty("accessToken").GetString();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -303,4 +281,13 @@ public class ProductsApiTests
     }
 
     private static StringContent Json(string raw) => new(raw, Encoding.UTF8, "application/json");
+
+    private static Task<HttpResponseMessage> PostJsonAsync(HttpClient client, string url, object body)
+        => client.PostAsync(url, new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json"));
+
+    private static Task<HttpResponseMessage> PutJsonAsync(HttpClient client, string url, object body)
+        => client.PutAsync(url, new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json"));
+
+    private static async Task<JsonDocument> ReadJsonAsync(HttpResponseMessage response)
+        => JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 }

@@ -1,7 +1,7 @@
 namespace WooliesX.Products.Application.Features.Products.Queries.GetProducts;
 
 public record GetProductsQuery(
-    string? Q,
+    string? SearchTerm,
     string? Title,
     string? Brand,
     string? Category,

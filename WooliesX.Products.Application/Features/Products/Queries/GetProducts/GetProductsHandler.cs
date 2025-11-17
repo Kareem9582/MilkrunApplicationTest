@@ -12,13 +12,13 @@ public class GetProductsHandler : IRequestHandler<GetProductsQuery, GetProductsR
         _mapper = mapper;
     }
 
-    public Task<GetProductsResult> Handle(GetProductsQuery r, CancellationToken ct)
+    public Task<GetProductsResult> Handle(GetProductsQuery query, CancellationToken ct)
     {
         IEnumerable<Product> items = _repo.GetAll();
 
-        if (!string.IsNullOrWhiteSpace(r.Q))
+        if (!string.IsNullOrWhiteSpace(query.SearchTerm))
         {
-            var term = r.Q.Trim();
+            var term = query.SearchTerm.Trim();
             items = items.Where(p =>
                 (!string.IsNullOrEmpty(p.Title) && p.Title.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
                 (!string.IsNullOrEmpty(p.Brand) && p.Brand.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
@@ -27,33 +27,33 @@ public class GetProductsHandler : IRequestHandler<GetProductsQuery, GetProductsR
             );
         }
 
-        if (!string.IsNullOrWhiteSpace(r.Title))
+        if (!string.IsNullOrWhiteSpace(query.Title))
         {
-            var titles = r.Title.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            var titles = query.Title.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(s => s.ToLowerInvariant()).ToHashSet();
             items = items.Where(p => p.Title != null && titles.Contains(p.Title.ToLowerInvariant()));
         }
-        if (!string.IsNullOrWhiteSpace(r.Brand))
+        if (!string.IsNullOrWhiteSpace(query.Brand))
         {
-            var brands = r.Brand.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            var brands = query.Brand.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(s => s.ToLowerInvariant()).ToHashSet();
             items = items.Where(p => p.Brand != null && brands.Contains(p.Brand.ToLowerInvariant()));
         }
-        if (!string.IsNullOrWhiteSpace(r.Category))
+        if (!string.IsNullOrWhiteSpace(query.Category))
         {
-            var cats = r.Category.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            var cats = query.Category.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(s => s.ToLowerInvariant()).ToHashSet();
             items = items.Where(p => p.Category != null && cats.Contains(p.Category.ToLowerInvariant()));
         }
 
-        if (r.MinPrice.HasValue) items = items.Where(p => p.Price >= r.MinPrice.Value);
-        if (r.MaxPrice.HasValue) items = items.Where(p => p.Price <= r.MaxPrice.Value);
-        if (r.MinRating.HasValue) items = items.Where(p => (p.Rating ?? 0) >= r.MinRating.Value);
-        if (r.InStock.HasValue)
-            items = r.InStock.Value ? items.Where(p => (p.Stock ?? 0) > 0) : items.Where(p => (p.Stock ?? 0) <= 0);
+        if (query.MinPrice.HasValue) items = items.Where(p => p.Price >= query.MinPrice.Value);
+        if (query.MaxPrice.HasValue) items = items.Where(p => p.Price <= query.MaxPrice.Value);
+        if (query.MinRating.HasValue) items = items.Where(p => (p.Rating ?? 0) >= query.MinRating.Value);
+        if (query.InStock.HasValue)
+            items = query.InStock.Value ? items.Where(p => (p.Stock ?? 0) > 0) : items.Where(p => (p.Stock ?? 0) <= 0);
 
-        var sortBy = string.IsNullOrWhiteSpace(r.SortBy) ? "id" : r.SortBy.Trim().ToLowerInvariant();
-        var descending = string.Equals(r.Order, "desc", StringComparison.OrdinalIgnoreCase);
+        var sortBy = string.IsNullOrWhiteSpace(query.SortBy) ? "id" : query.SortBy.Trim().ToLowerInvariant();
+        var descending = string.Equals(query.Order, "desc", StringComparison.OrdinalIgnoreCase);
         items = sortBy switch
         {
             "title" => (descending ? items.OrderByDescending(p => p.Title) : items.OrderBy(p => p.Title)),
@@ -67,8 +67,8 @@ public class GetProductsHandler : IRequestHandler<GetProductsQuery, GetProductsR
         };
 
         var total = items.Count();
-        var p = r.Page.GetValueOrDefault(1);
-        var ps = r.PageSize.GetValueOrDefault(20);
+        var p = query.Page.GetValueOrDefault(1);
+        var ps = query.PageSize.GetValueOrDefault(20);
         if (p < 1) p = 1; if (ps < 1) ps = 20; if (ps > 100) ps = 100;
         var pageItems = items
             .Skip((p - 1) * ps)
